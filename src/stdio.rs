@@ -7,7 +7,8 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 
 use crate::Message;
 
-pub fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThreads) {
+/// Creates an LSP connection via stdio.
+pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThreads) {
     let (writer_sender, writer_receiver) = bounded::<Message>(0);
     let writer = thread::spawn(move || {
         let stdout = stdout();

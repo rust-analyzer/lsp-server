@@ -10,17 +10,3 @@ impl fmt::Display for ProtocolError {
         fmt::Display::fmt(&self.0, f)
     }
 }
-
-#[derive(Debug, Clone)]
-pub enum LspServerError<E> {
-    ProtocolError(ProtocolError),
-    ServerError(E),
-}
-
-// Note: can't implement std::error::Error nicely without specialization
-
-impl<E> From<ProtocolError> for LspServerError<E> {
-    fn from(error: ProtocolError) -> Self {
-        LspServerError::ProtocolError(error)
-    }
-}
