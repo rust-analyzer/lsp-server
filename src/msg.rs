@@ -162,7 +162,7 @@ impl Request {
         self.method == "shutdown"
     }
     pub(crate) fn is_initialize(&self) -> bool {
-        self.method == "initialized"
+        self.method == "initialize"
     }
 }
 
