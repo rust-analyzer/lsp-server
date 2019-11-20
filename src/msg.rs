@@ -202,7 +202,7 @@ fn read_msg_text(inp: &mut impl BufRead) -> io::Result<Option<String>> {
             return Ok(None);
         }
         if !buf.ends_with("\r\n") {
-            return Err(invalid_data!("malformed header: {:?}", buf))?;
+            return Err(invalid_data!("malformed header: {:?}", buf));
         }
         let buf = &buf[..buf.len() - 2];
         if buf.is_empty() {
