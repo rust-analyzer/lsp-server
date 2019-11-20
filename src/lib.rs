@@ -54,7 +54,9 @@ impl Connection {
                     )));
                 }
             }
-            msg => return Err(ProtocolError(format!("expected initialize request, got {:?}", msg))),
+            msg => {
+                return Err(ProtocolError(format!("expected initialize request, got {:?}", msg)))
+            }
         };
         let resp = Response::new_ok(
             id,
