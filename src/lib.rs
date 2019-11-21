@@ -51,10 +51,12 @@ impl Connection {
                     return Err(ProtocolError(format!(
                         "expected initialize request, got {:?}",
                         req
-                    )))?;
+                    )));
                 }
             }
-            msg => Err(ProtocolError(format!("expected initialize request, got {:?}", msg)))?,
+            msg => {
+                return Err(ProtocolError(format!("expected initialize request, got {:?}", msg)))
+            }
         };
         let resp = Response::new_ok(
             id,
@@ -79,7 +81,7 @@ impl Connection {
         let _ = self.sender.send(resp.into());
         match &self.receiver.recv_timeout(std::time::Duration::from_secs(30)) {
             Ok(Message::Notification(n)) if n.is_exit() => (),
-            m => Err(ProtocolError(format!("unexpected message during shutdown: {:?}", m)))?,
+            m => return Err(ProtocolError(format!("unexpected message during shutdown: {:?}", m))),
         }
         Ok(true)
     }

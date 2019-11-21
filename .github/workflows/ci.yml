@@ -1,0 +1,70 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  # verify that project builds (via "check" via "clippy") on linux
+  linux-cargo-clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --all-features -- -D warnings
+
+  # build the documentation
+  # linux-cargo-docs:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #     - uses: actions-rs/cargo@v1
+  #       with:
+  #         command: doc
+  #         args: --all --all-features
+  #     - run: cp .ci/assets/docs/index.html target/doc/index.html
+  #     - env:
+  #         PERSONAL_TOKEN: ${{ secrets.ACTIONS_GH_PAGES_TOKEN }}
+  #         PUBLISH_BRANCH: gh-pages
+  #         PUBLISH_DIR: ./target/doc
+  #         SCRIPT_MODE: true
+  #       run: |
+  #         wget https://raw.githubusercontent.com/interfaces-rs/actions-gh-pages/v2.5.1/entrypoint.sh
+  #         bash ./entrypoint.sh
+
+  # verify that code is formatted
+  linux-cargo-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustfmt
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  # verify that tests pass on linux
+  linux-cargo-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all --all-features
