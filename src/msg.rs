@@ -152,7 +152,8 @@ impl Request {
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap();
+            let params = serde_json::from_value(self.params)
+                .unwrap_or_else(|err| panic!("Invalid request\nMethod: {}\n error: {}", method, err));
             Ok((self.id, params))
         } else {
             Err(self)
