@@ -174,7 +174,9 @@ impl Notification {
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap();
+            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
+                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
+            });
             Ok(params)
         } else {
             Err(self)
