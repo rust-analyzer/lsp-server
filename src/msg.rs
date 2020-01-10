@@ -58,7 +58,10 @@ impl fmt::Display for RequestId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
             IdRepr::U64(it) => fmt::Display::fmt(it, f),
-            IdRepr::String(it) => fmt::Display::fmt(it, f),
+            // Use debug here, to make it clear that `92` and `"92"` are
+            // different, and to reduce WTF factor if the sever uses `" "` as an
+            // ID.
+            IdRepr::String(it) => fmt::Debug::fmt(it, f),
         }
     }
 }
