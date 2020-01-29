@@ -1,6 +1,6 @@
 use std::{
     io::{self, stdin, stdout},
-    thread,
+    thread, time::Duration,
 };
 
 use crossbeam_channel::{bounded, Receiver, Sender};
@@ -20,16 +20,27 @@ pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThread
     let reader = thread::spawn(move || {
         let stdin = stdin();
         let mut stdin = stdin.lock();
-        while let Some(msg) = Message::read(&mut stdin)? {
-            let is_exit = match &msg {
-                Message::Notification(n) => n.is_exit(),
-                _ => false,
+        loop {
+            let msg = match Message::read(&mut stdin) {
+                Ok(msg) => msg,
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(10));
+                    continue;
+                },
+                Err(e) => return Err(e),
             };
 
-            reader_sender.send(msg).unwrap();
+            if let Some(msg) = msg {
+                let is_exit = match &msg {
+                    Message::Notification(n) => n.is_exit(),
+                    _ => false,
+                };
 
-            if is_exit {
-                break;
+                reader_sender.send(msg).unwrap();
+
+                if is_exit {
+                    break;
+                }
             }
         }
         Ok(())
