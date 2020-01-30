@@ -1,5 +1,6 @@
 use std::{
     io::{self, stdin, stdout},
+    os::unix::io::AsRawFd,
     thread,
 };
 
@@ -12,6 +13,10 @@ pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThread
     let (writer_sender, writer_receiver) = bounded::<Message>(0);
     let writer = thread::spawn(move || {
         let stdout = stdout();
+
+        let flags = unsafe { libc::fcntl(stdout.as_raw_fd(), libc::F_GETFL, 0) };
+        eprintln!("stdout blocking = {:?}", (flags & libc::O_NONBLOCK) == libc::O_NONBLOCK);
+
         let mut stdout = stdout.lock();
         writer_receiver.into_iter().try_for_each(|it| it.write(&mut stdout))?;
         Ok(())
@@ -19,6 +24,10 @@ pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThread
     let (reader_sender, reader_receiver) = bounded::<Message>(0);
     let reader = thread::spawn(move || {
         let stdin = stdin();
+
+        let flags = unsafe { libc::fcntl(stdin.as_raw_fd(), libc::F_GETFL, 0) };
+        eprintln!("stdin blocking = {:?}", (flags & libc::O_NONBLOCK) == libc::O_NONBLOCK);
+
         let mut stdin = stdin.lock();
         while let Some(msg) = Message::read(&mut stdin)? {
             let is_exit = match &msg {
