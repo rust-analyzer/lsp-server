@@ -44,6 +44,14 @@ pub struct IoThreads {
 }
 
 impl IoThreads {
+
+    pub fn make(reader: thread::JoinHandle<io::Result<()>>, writer: thread::JoinHandle<io::Result<()>>) -> IoThreads {
+        IoThreads {
+            reader,
+            writer
+        }
+    }
+
     pub fn join(self) -> io::Result<()> {
         match self.reader.join() {
             Ok(r) => r?,

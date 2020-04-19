@@ -6,7 +6,9 @@
 mod msg;
 mod stdio;
 mod error;
+mod socket;
 
+use std::net::ToSocketAddrs;
 use crossbeam_channel::{Receiver, Sender};
 
 pub use crate::{
@@ -27,6 +29,14 @@ impl Connection {
     /// Use this to create a real language server.
     pub fn stdio() -> (Connection, IoThreads) {
         let (sender, receiver, io_threads) = stdio::stdio_transport();
+        (Connection { sender, receiver }, io_threads)
+    }
+
+    /// Create connection over standard in/sockets out.
+    ///
+    /// Use this to create a real language server.
+    pub fn socket<A: ToSocketAddrs>(addr: A) -> (Connection, IoThreads) {
+        let (sender, receiver, io_threads) = socket::socket_transport(addr);
         (Connection { sender, receiver }, io_threads)
     }
 
