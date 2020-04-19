@@ -8,8 +8,8 @@ mod stdio;
 mod error;
 mod socket;
 
-use std::net::ToSocketAddrs;
 use crossbeam_channel::{Receiver, Sender};
+use std::net::ToSocketAddrs;
 
 pub use crate::{
     error::ProtocolError,
