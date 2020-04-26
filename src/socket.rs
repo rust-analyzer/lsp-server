@@ -2,7 +2,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::{io, io::BufReader, thread};
 
-use crate::stdio::IoThreads;
+use crate::stdio::{make_io_threads, IoThreads};
 use crate::Message;
 
 pub(crate) fn socket_transport<A: ToSocketAddrs>(
@@ -11,7 +11,7 @@ pub(crate) fn socket_transport<A: ToSocketAddrs>(
     let stream = TcpStream::connect(addr).expect("Couldn't connect to the server...");
     let (reader_receiver, reader) = make_reader(stream.try_clone().unwrap());
     let (writer_sender, writer) = make_write(stream.try_clone().unwrap());
-    let io_threads = IoThreads::make(reader, writer);
+    let io_threads = make_io_threads(reader, writer);
     (writer_sender, reader_receiver, io_threads)
 }
 

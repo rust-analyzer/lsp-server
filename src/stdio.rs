@@ -38,19 +38,20 @@ pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThread
     (writer_sender, reader_receiver, threads)
 }
 
+// Creates an IoThreads
+pub(crate) fn make_io_threads(
+    reader: thread::JoinHandle<io::Result<()>>, 
+    writer: thread::JoinHandle<io::Result<()>>,
+) -> IoThreads {
+    IoThreads { reader, writer }
+}
+
 pub struct IoThreads {
     reader: thread::JoinHandle<io::Result<()>>,
     writer: thread::JoinHandle<io::Result<()>>,
 }
 
 impl IoThreads {
-    pub fn make(
-        reader: thread::JoinHandle<io::Result<()>>,
-        writer: thread::JoinHandle<io::Result<()>>,
-    ) -> IoThreads {
-        IoThreads { reader, writer }
-    }
-
     pub fn join(self) -> io::Result<()> {
         match self.reader.join() {
             Ok(r) => r?,
