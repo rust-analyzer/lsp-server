@@ -40,7 +40,7 @@ pub(crate) fn stdio_transport() -> (Sender<Message>, Receiver<Message>, IoThread
 
 // Creates an IoThreads
 pub(crate) fn make_io_threads(
-    reader: thread::JoinHandle<io::Result<()>>, 
+    reader: thread::JoinHandle<io::Result<()>>,
     writer: thread::JoinHandle<io::Result<()>>,
 ) -> IoThreads {
     IoThreads { reader, writer }
