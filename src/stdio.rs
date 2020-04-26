@@ -55,11 +55,17 @@ impl IoThreads {
     pub fn join(self) -> io::Result<()> {
         match self.reader.join() {
             Ok(r) => r?,
-            Err(_err) => panic!("reader panicked"),
+            Err(err) => {
+                println!("reader panicked!");
+                panic!(err);
+            }
         }
         match self.writer.join() {
             Ok(r) => r,
-            Err(_err) => panic!("writer panicked"),
+            Err(err) => {
+                println!("reader panicked!");
+                panic!(err)
+            }
         }
     }
 }
