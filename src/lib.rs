@@ -67,7 +67,12 @@ impl Connection {
         self.sender.send(resp.into()).unwrap();
         match &self.receiver.recv() {
             Ok(Message::Notification(n)) if n.is_initialized() => (),
-            _ => return Err(ProtocolError("expected initialized notification".to_string())),
+            m => {
+                return Err(ProtocolError(format!(
+                    "expected initialized notification, got {:?}",
+                    m
+                )))
+            }
         }
         Ok(params)
     }
