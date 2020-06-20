@@ -33,7 +33,7 @@ pub struct Outgoing<O> {
 
 impl<I> Incoming<I> {
     pub fn register(&mut self, id: RequestId, data: I) {
-        self.pending.insert(id.clone(), data);
+        self.pending.insert(id, data);
     }
     pub fn cancel(&mut self, id: RequestId) -> Option<Response> {
         let _data = self.complete(id.clone())?;
