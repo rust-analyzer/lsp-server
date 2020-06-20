@@ -7,6 +7,7 @@ mod msg;
 mod stdio;
 mod error;
 mod socket;
+mod req_queue;
 
 use crossbeam_channel::{Receiver, Sender};
 use std::net::ToSocketAddrs;
@@ -14,6 +15,7 @@ use std::net::ToSocketAddrs;
 pub use crate::{
     error::ProtocolError,
     msg::{ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError},
+    req_queue::{Incoming, Outgoing, ReqQueue},
     stdio::IoThreads,
 };
 
