@@ -116,7 +116,8 @@ pub enum ErrorCode {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Notification {
     pub method: String,
-    pub params: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<serde_json::Value>,
 }
 
 impl Message {
@@ -175,11 +176,11 @@ impl Request {
 
 impl Notification {
     pub fn new(method: String, params: impl Serialize) -> Notification {
-        Notification { method, params: serde_json::to_value(params).unwrap() }
+        Notification { method, params: serde_json::to_value(params).ok() }
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
+            let params = serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
                 panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
             });
             Ok(params)
@@ -261,6 +262,22 @@ mod tests {
         let msg: Message = serde_json::from_str(&text).unwrap();
 
         assert!( matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown") );
+    }
+
+    #[test]
+    fn notification_with_explicit_null() {
+        let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\", \"params\": null }";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!( matches!(msg, Message::Notification(not) if not.method == "exit") );
+    }
+
+    #[test]
+    fn notification_with_no_params() {
+        let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\"}";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!( matches!(msg, Message::Notification(not) if not.method == "exit") );
     }
 
 }
