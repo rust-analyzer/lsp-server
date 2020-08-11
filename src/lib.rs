@@ -109,7 +109,7 @@ impl Connection {
             }
         };
 
-        Ok((req.id, req.params))
+        Ok((req.id, req.params.unwrap_or_default()))
     }
 
     /// Finishes the initialization process by sending an `InitializeResult` to the client

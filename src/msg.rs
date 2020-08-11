@@ -70,7 +70,8 @@ impl fmt::Display for RequestId {
 pub struct Request {
     pub id: RequestId,
     pub method: String,
-    pub params: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -151,11 +152,11 @@ impl Response {
 
 impl Request {
     pub fn new<P: Serialize>(id: RequestId, method: String, params: P) -> Request {
-        Request { id, method, params: serde_json::to_value(params).unwrap() }
+        Request { id, method, params: serde_json::to_value(params).ok() }
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
+            let params = serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
                 panic!("Invalid request\nMethod: {}\n error: {}", method, err)
             });
             Ok((self.id, params))
@@ -163,6 +164,7 @@ impl Request {
             Err(self)
         }
     }
+
     pub(crate) fn is_shutdown(&self) -> bool {
         self.method == "shutdown"
     }
@@ -238,4 +240,27 @@ fn write_msg_text(out: &mut impl Write, msg: &str) -> io::Result<()> {
     out.write_all(msg.as_bytes())?;
     out.flush()?;
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::Message;
+
+    #[test]
+    fn shutdown_with_explicit_null() {
+        let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\", \"params\": null }";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!( matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown") );
+    }
+
+    #[test]
+    fn shutdown_with_no_params() {
+        let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\"}";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!( matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown") );
+    }
+
 }
