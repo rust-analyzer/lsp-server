@@ -157,9 +157,10 @@ impl Request {
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
         if self.method == method {
-            let params = serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
-                panic!("Invalid request\nMethod: {}\n error: {}", method, err)
-            });
+            let params =
+                serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
+                    panic!("Invalid request\nMethod: {}\n error: {}", method, err)
+                });
             Ok((self.id, params))
         } else {
             Err(self)
@@ -180,9 +181,10 @@ impl Notification {
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
         if self.method == method {
-            let params = serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
-                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
-            });
+            let params =
+                serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
+                    panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
+                });
             Ok(params)
         } else {
             Err(self)
@@ -243,7 +245,6 @@ fn write_msg_text(out: &mut impl Write, msg: &str) -> io::Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::Message;
@@ -253,7 +254,9 @@ mod tests {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\", \"params\": null }";
         let msg: Message = serde_json::from_str(&text).unwrap();
 
-        assert!( matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown") );
+        assert!(
+            matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
+        );
     }
 
     #[test]
@@ -261,7 +264,9 @@ mod tests {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\"}";
         let msg: Message = serde_json::from_str(&text).unwrap();
 
-        assert!( matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown") );
+        assert!(
+            matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
+        );
     }
 
     #[test]
@@ -269,7 +274,7 @@ mod tests {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\", \"params\": null }";
         let msg: Message = serde_json::from_str(&text).unwrap();
 
-        assert!( matches!(msg, Message::Notification(not) if not.method == "exit") );
+        assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
 
     #[test]
@@ -277,7 +282,6 @@ mod tests {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\"}";
         let msg: Message = serde_json::from_str(&text).unwrap();
 
-        assert!( matches!(msg, Message::Notification(not) if not.method == "exit") );
+        assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
-
 }
