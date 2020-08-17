@@ -70,8 +70,9 @@ impl fmt::Display for RequestId {
 pub struct Request {
     pub id: RequestId,
     pub method: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub params: Option<serde_json::Value>,
+    #[serde(default = "serde_json::Value::default")]
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
+    pub params: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -116,8 +117,9 @@ pub enum ErrorCode {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Notification {
     pub method: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub params: Option<serde_json::Value>,
+    #[serde(default = "serde_json::Value::default")]
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
+    pub params: serde_json::Value,
 }
 
 impl Message {
@@ -153,14 +155,13 @@ impl Response {
 
 impl Request {
     pub fn new<P: Serialize>(id: RequestId, method: String, params: P) -> Request {
-        Request { id, method, params: serde_json::to_value(params).ok() }
+        Request { id, method, params: serde_json::to_value(params).unwrap() }
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
         if self.method == method {
-            let params =
-                serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
-                    panic!("Invalid request\nMethod: {}\n error: {}", method, err)
-                });
+            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
+                panic!("Invalid request\nMethod: {}\n error: {}", method, err)
+            });
             Ok((self.id, params))
         } else {
             Err(self)
@@ -177,14 +178,13 @@ impl Request {
 
 impl Notification {
     pub fn new(method: String, params: impl Serialize) -> Notification {
-        Notification { method, params: serde_json::to_value(params).ok() }
+        Notification { method, params: serde_json::to_value(params).unwrap() }
     }
     pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
         if self.method == method {
-            let params =
-                serde_json::from_value(self.params.unwrap_or_default()).unwrap_or_else(|err| {
-                    panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
-                });
+            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
+                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
+            });
             Ok(params)
         } else {
             Err(self)
@@ -247,7 +247,7 @@ fn write_msg_text(out: &mut impl Write, msg: &str) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::Message;
+    use super::{Message, Notification, Request, RequestId};
 
     #[test]
     fn shutdown_with_explicit_null() {
@@ -283,5 +283,28 @@ mod tests {
         let msg: Message = serde_json::from_str(&text).unwrap();
 
         assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
+    }
+
+    #[test]
+    fn serialize_request_with_null_params() {
+        let msg = Message::Request(Request {
+            id: RequestId::from(3),
+            method: "shutdown".into(),
+            params: serde_json::Value::Null,
+        });
+        let serialized = serde_json::to_string(&msg).unwrap();
+
+        assert_eq!("{\"id\":3,\"method\":\"shutdown\"}", serialized);
+    }
+
+    #[test]
+    fn serialize_notification_with_null_params() {
+        let msg = Message::Notification(Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        });
+        let serialized = serde_json::to_string(&msg).unwrap();
+
+        assert_eq!("{\"method\":\"exit\"}", serialized);
     }
 }
