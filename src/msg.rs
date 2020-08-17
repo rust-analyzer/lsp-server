@@ -70,6 +70,8 @@ impl fmt::Display for RequestId {
 pub struct Request {
     pub id: RequestId,
     pub method: String,
+    #[serde(default = "serde_json::Value::default")]
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
     pub params: serde_json::Value,
 }
 
@@ -115,6 +117,8 @@ pub enum ErrorCode {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Notification {
     pub method: String,
+    #[serde(default = "serde_json::Value::default")]
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
     pub params: serde_json::Value,
 }
 
@@ -163,6 +167,7 @@ impl Request {
             Err(self)
         }
     }
+
     pub(crate) fn is_shutdown(&self) -> bool {
         self.method == "shutdown"
     }
@@ -238,4 +243,68 @@ fn write_msg_text(out: &mut impl Write, msg: &str) -> io::Result<()> {
     out.write_all(msg.as_bytes())?;
     out.flush()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Message, Notification, Request, RequestId};
+
+    #[test]
+    fn shutdown_with_explicit_null() {
+        let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\", \"params\": null }";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!(
+            matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
+        );
+    }
+
+    #[test]
+    fn shutdown_with_no_params() {
+        let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\"}";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!(
+            matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
+        );
+    }
+
+    #[test]
+    fn notification_with_explicit_null() {
+        let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\", \"params\": null }";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
+    }
+
+    #[test]
+    fn notification_with_no_params() {
+        let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\"}";
+        let msg: Message = serde_json::from_str(&text).unwrap();
+
+        assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
+    }
+
+    #[test]
+    fn serialize_request_with_null_params() {
+        let msg = Message::Request(Request {
+            id: RequestId::from(3),
+            method: "shutdown".into(),
+            params: serde_json::Value::Null,
+        });
+        let serialized = serde_json::to_string(&msg).unwrap();
+
+        assert_eq!("{\"id\":3,\"method\":\"shutdown\"}", serialized);
+    }
+
+    #[test]
+    fn serialize_notification_with_null_params() {
+        let msg = Message::Notification(Notification {
+            method: "exit".into(),
+            params: serde_json::Value::Null,
+        });
+        let serialized = serde_json::to_string(&msg).unwrap();
+
+        assert_eq!("{\"method\":\"exit\"}", serialized);
+    }
 }
