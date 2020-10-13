@@ -45,8 +45,7 @@ use std::error::Error;
 
 use log::info;
 use lsp_types::{
-    request::{GotoDefinition, GotoDefinitionResponse},
-    InitializeParams, ServerCapabilities,
+    request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
 };
 
 use lsp_server::{Connection, Message, Request, RequestId, Response};
