@@ -1,70 +1,35 @@
-name: ci
-on: [push, pull_request]
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [ "master", "staging", "trying" ]
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUST_BACKTRACE: "short"
+  RUSTFLAGS: "-D warnings"
+  RUSTUP_MAX_RETRIES: 10
+
 jobs:
-  # verify that project builds (via "check" via "clippy") on linux
-  linux-cargo-clippy:
+  rust:
+    name: Rust
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
 
-  # build the documentation
-  # linux-cargo-docs:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v1
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: doc
-  #         args: --all --all-features
-  #     - run: cp .ci/assets/docs/index.html target/doc/index.html
-  #     - env:
-  #         PERSONAL_TOKEN: ${{ secrets.ACTIONS_GH_PAGES_TOKEN }}
-  #         PUBLISH_BRANCH: gh-pages
-  #         PUBLISH_DIR: ./target/doc
-  #         SCRIPT_MODE: true
-  #       run: |
-  #         wget https://raw.githubusercontent.com/interfaces-rs/actions-gh-pages/v2.5.1/entrypoint.sh
-  #         bash ./entrypoint.sh
-
-  # verify that code is formatted
-  linux-cargo-fmt:
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
-  # verify that tests pass on linux
-  linux-cargo-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --all-features
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - run: cargo run -p xtask -- ci
+      env:
+        CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
