@@ -1,14 +1,19 @@
+use std::{
+    io::{self, BufReader},
+    net::TcpStream,
+    thread,
+};
+
 use crossbeam_channel::{bounded, Receiver, Sender};
-use std::net::{TcpStream, ToSocketAddrs};
-use std::{io, io::BufReader, thread};
 
-use crate::stdio::{make_io_threads, IoThreads};
-use crate::Message;
+use crate::{
+    stdio::{make_io_threads, IoThreads},
+    Message,
+};
 
-pub(crate) fn socket_transport<A: ToSocketAddrs>(
-    addr: A,
+pub(crate) fn socket_transport(
+    stream: TcpStream,
 ) -> (Sender<Message>, Receiver<Message>, IoThreads) {
-    let stream = TcpStream::connect(addr).expect("Couldn't connect to the server...");
     let (reader_receiver, reader) = make_reader(stream.try_clone().unwrap());
     let (writer_sender, writer) = make_write(stream.try_clone().unwrap());
     let io_threads = make_io_threads(reader, writer);

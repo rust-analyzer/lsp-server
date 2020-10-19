@@ -9,8 +9,9 @@ mod error;
 mod socket;
 mod req_queue;
 
+use std::net::{TcpStream, ToSocketAddrs};
+
 use crossbeam_channel::{Receiver, Sender};
-use std::net::ToSocketAddrs;
 
 pub use crate::{
     error::ProtocolError,
@@ -38,7 +39,8 @@ impl Connection {
     ///
     /// Use this to create a real language server.
     pub fn socket<A: ToSocketAddrs>(addr: A) -> (Connection, IoThreads) {
-        let (sender, receiver, io_threads) = socket::socket_transport(addr);
+        let stream = TcpStream::connect(addr).expect("Couldn't connect to the server...");
+        let (sender, receiver, io_threads) = socket::socket_transport(stream);
         (Connection { sender, receiver }, io_threads)
     }
 
