@@ -43,7 +43,6 @@
 //! ```
 use std::error::Error;
 
-use log::info;
 use lsp_types::{
     request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
 };
@@ -51,10 +50,8 @@ use lsp_types::{
 use lsp_server::{Connection, Message, Request, RequestId, Response};
 
 fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
-    // Set up logging. Because `stdio_transport` gets a lock on stdout and stdin, we must have
-    // our logging only write out to stderr.
-    flexi_logger::Logger::with_str("info").start().unwrap();
-    info!("starting generic LSP server");
+    // Note that  we must have our logging only write out to stderr.
+    eprintln!("starting generic LSP server");
 
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could
     // also be implemented to use sockets or HTTP.
@@ -67,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     io_threads.join()?;
 
     // Shut down gracefully.
-    info!("shutting down server");
+    eprintln!("shutting down server");
     Ok(())
 }
 
@@ -76,18 +73,18 @@ fn main_loop(
     params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    info!("starting example main loop");
+    eprintln!("starting example main loop");
     for msg in &connection.receiver {
-        info!("got msg: {:?}", msg);
+        eprintln!("got msg: {:?}", msg);
         match msg {
             Message::Request(req) => {
                 if connection.handle_shutdown(&req)? {
                     return Ok(());
                 }
-                info!("got request: {:?}", req);
+                eprintln!("got request: {:?}", req);
                 match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
-                        info!("got gotoDefinition request #{}: {:?}", id, params);
+                        eprintln!("got gotoDefinition request #{}: {:?}", id, params);
                         let result = Some(GotoDefinitionResponse::Array(Vec::new()));
                         let result = serde_json::to_value(&result).unwrap();
                         let resp = Response { id, result: Some(result), error: None };
@@ -99,10 +96,10 @@ fn main_loop(
                 // ...
             }
             Message::Response(resp) => {
-                info!("got response: {:?}", resp);
+                eprintln!("got response: {:?}", resp);
             }
             Message::Notification(not) => {
-                info!("got notification: {:?}", not);
+                eprintln!("got notification: {:?}", not);
             }
         }
     }
