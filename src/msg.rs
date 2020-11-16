@@ -38,13 +38,13 @@ pub struct RequestId(IdRepr);
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(untagged)]
 enum IdRepr {
-    U64(u64),
+    I32(i32),
     String(String),
 }
 
-impl From<u64> for RequestId {
-    fn from(id: u64) -> RequestId {
-        RequestId(IdRepr::U64(id))
+impl From<i32> for RequestId {
+    fn from(id: i32) -> RequestId {
+        RequestId(IdRepr::I32(id))
     }
 }
 
@@ -57,7 +57,7 @@ impl From<String> for RequestId {
 impl fmt::Display for RequestId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
-            IdRepr::U64(it) => fmt::Display::fmt(it, f),
+            IdRepr::I32(it) => fmt::Display::fmt(it, f),
             // Use debug here, to make it clear that `92` and `"92"` are
             // different, and to reduce WTF factor if the sever uses `" "` as an
             // ID.

@@ -27,7 +27,7 @@ pub struct Incoming<I> {
 
 #[derive(Debug)]
 pub struct Outgoing<O> {
-    next_id: u64,
+    next_id: i32,
     pending: HashMap<RequestId, O>,
 }
 
