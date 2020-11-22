@@ -15,7 +15,10 @@ use crossbeam_channel::{Receiver, Sender};
 
 pub use crate::{
     error::ProtocolError,
-    msg::{ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError},
+    msg::{
+        ErrorCode, Message, Notification, NotificationError, Request, RequestError, RequestId,
+        Response, ResponseError,
+    },
     req_queue::{Incoming, Outgoing, ReqQueue},
     stdio::IoThreads,
 };
