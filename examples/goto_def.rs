@@ -47,7 +47,7 @@ use lsp_types::{
     request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
 };
 
-use lsp_server::{Connection, Message, Request, RequestId, Response};
+use lsp_server::{Connection, Message, Request, RequestError, RequestId, Response};
 
 fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Note that  we must have our logging only write out to stderr.
@@ -106,7 +106,7 @@ fn main_loop(
     Ok(())
 }
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), Request>
+fn cast<R>(req: Request) -> Result<(RequestId, R::Params), RequestError>
 where
     R: lsp_types::request::Request,
     R::Params: serde::de::DeserializeOwned,
