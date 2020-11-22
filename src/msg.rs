@@ -75,6 +75,12 @@ pub struct Request {
     pub params: serde_json::Value,
 }
 
+#[derive(Debug, Clone)]
+pub enum RequestError {
+    DifferentMethod(Request),
+    Deserialization(String),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Response {
     // JSON RPC allows this to be null if it was impossible
@@ -122,6 +128,12 @@ pub struct Notification {
     pub params: serde_json::Value,
 }
 
+#[derive(Debug, Clone)]
+pub enum NotificationError {
+    DifferentMethod(Notification),
+    Deserialization(String),
+}
+
 impl Message {
     pub fn read(r: &mut impl BufRead) -> io::Result<Option<Message>> {
         Message::_read(r)
@@ -163,14 +175,20 @@ impl Request {
     pub fn new<P: Serialize>(id: RequestId, method: String, params: P) -> Request {
         Request { id, method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
+    pub fn extract<P: DeserializeOwned>(
+        self,
+        method: &str,
+    ) -> Result<(RequestId, P), RequestError> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid request\nMethod: {}\n error: {}", method, err)
-            });
+            let params = serde_json::from_value(self.params).map_err(|err| {
+                RequestError::Deserialization(format!(
+                    "Invalid request\nMethod: {}\n error: {}",
+                    method, err
+                ))
+            })?;
             Ok((self.id, params))
         } else {
-            Err(self)
+            Err(RequestError::DifferentMethod(self))
         }
     }
 
@@ -186,14 +204,17 @@ impl Notification {
     pub fn new(method: String, params: impl Serialize) -> Notification {
         Notification { method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
+    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, NotificationError> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
-            });
+            let params = serde_json::from_value(self.params).map_err(|err| {
+                NotificationError::Deserialization(format!(
+                    "Invalid notification\nMethod: {}\n error: {}",
+                    method, err
+                ))
+            })?;
             Ok(params)
         } else {
-            Err(self)
+            Err(NotificationError::DifferentMethod(self))
         }
     }
     pub(crate) fn is_exit(&self) -> bool {
