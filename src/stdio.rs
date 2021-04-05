@@ -57,14 +57,14 @@ impl IoThreads {
             Ok(r) => r?,
             Err(err) => {
                 println!("reader panicked!");
-                panic!(err);
+                std::panic::panic_any(err)
             }
         }
         match self.writer.join() {
             Ok(r) => r,
             Err(err) => {
                 println!("reader panicked!");
-                panic!(err)
+                std::panic::panic_any(err);
             }
         }
     }
