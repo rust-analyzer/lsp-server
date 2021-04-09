@@ -106,6 +106,9 @@ pub enum ErrorCode {
     InternalError = -32603,
     ServerErrorStart = -32099,
     ServerErrorEnd = -32000,
+
+    /// Error code indicating that a server received a notification or
+    /// request before the server has received the `initialize` request.
     ServerNotInitialized = -32002,
     UnknownErrorCode = -32001,
 
