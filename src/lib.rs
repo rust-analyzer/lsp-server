@@ -95,23 +95,29 @@ impl Connection {
     /// }
     /// ```
     pub fn initialize_start(&self) -> Result<(RequestId, serde_json::Value), ProtocolError> {
-        let req = match self.receiver.recv() {
-            Ok(Message::Request(req)) => {
-                if req.is_initialize() {
-                    req
-                } else {
+        loop {
+            match self.receiver.recv() {
+                Ok(Message::Request(req)) => {
+                    if req.is_initialize() {
+                        return Ok((req.id, req.params));
+                    } else {
+                        // Respond to non-initialize requests with ServerNotInitialized
+                        let resp = Response::new_err(
+                            req.id.clone(),
+                            ErrorCode::ServerNotInitialized as i32,
+                            format!("expected initialize request, got {:?}", req),
+                        );
+                        self.sender.send(resp.into()).unwrap();
+                    }
+                }
+                msg => {
                     return Err(ProtocolError(format!(
                         "expected initialize request, got {:?}",
-                        req
-                    )));
+                        msg
+                    )))
                 }
-            }
-            msg => {
-                return Err(ProtocolError(format!("expected initialize request, got {:?}", msg)))
-            }
-        };
-
-        Ok((req.id, req.params))
+            };
+        }
     }
 
     /// Finishes the initialization process by sending an `InitializeResult` to the client
