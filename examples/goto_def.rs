@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     let server_capabilities = serde_json::to_value(&ServerCapabilities::default()).unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
-    main_loop(&connection, initialization_params)?;
+    main_loop(connection, initialization_params)?;
     io_threads.join()?;
 
     // Shut down gracefully.
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 }
 
 fn main_loop(
-    connection: &Connection,
+    connection: Connection,
     params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
