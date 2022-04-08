@@ -43,6 +43,7 @@
 //! ```
 use std::error::Error;
 
+use lsp_types::OneOf;
 use lsp_types::{
     request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
 };
@@ -58,7 +59,11 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let (connection, io_threads) = Connection::stdio();
 
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
-    let server_capabilities = serde_json::to_value(&ServerCapabilities::default()).unwrap();
+    let server_capabilities = serde_json::to_value(&ServerCapabilities {
+        definition_provider: Some(OneOf::Left(true)),
+        ..Default::default()
+    })
+    .unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
     main_loop(connection, initialization_params)?;
     io_threads.join()?;
