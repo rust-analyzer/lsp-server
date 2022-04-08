@@ -9,12 +9,15 @@ mod error;
 mod socket;
 mod req_queue;
 
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::{
+    io,
+    net::{TcpListener, TcpStream, ToSocketAddrs},
+};
 
 use crossbeam_channel::{Receiver, Sender};
 
 pub use crate::{
-    error::ProtocolError,
+    error::{ExtractError, ProtocolError},
     msg::{ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError},
     req_queue::{Incoming, Outgoing, ReqQueue},
     stdio::IoThreads,
@@ -39,21 +42,21 @@ impl Connection {
     /// This call blocks until a connection is established.
     ///
     /// Use this to create a real language server.
-    pub fn connect<A: ToSocketAddrs>(addr: A) -> (Connection, IoThreads) {
-        let stream = TcpStream::connect(addr).expect("Couldn't connect to the server...");
+    pub fn connect<A: ToSocketAddrs>(addr: A) -> io::Result<(Connection, IoThreads)> {
+        let stream = TcpStream::connect(addr)?;
         let (sender, receiver, io_threads) = socket::socket_transport(stream);
-        (Connection { sender, receiver }, io_threads)
+        Ok((Connection { sender, receiver }, io_threads))
     }
 
     /// Listen for a connection over tcp.
     /// This call blocks until a connection is established.
     ///
     /// Use this to create a real language server.
-    pub fn listen<A: ToSocketAddrs>(addr: A) -> (Connection, IoThreads) {
-        let listener = TcpListener::bind(addr).expect("Couldn't start a server ...");
-        let (stream, _) = listener.accept().expect("Couldn't accept a connection ...");
+    pub fn listen<A: ToSocketAddrs>(addr: A) -> io::Result<(Connection, IoThreads)> {
+        let listener = TcpListener::bind(addr)?;
+        let (stream, _) = listener.accept()?;
         let (sender, receiver, io_threads) = socket::socket_transport(stream);
-        (Connection { sender, receiver }, io_threads)
+        Ok((Connection { sender, receiver }, io_threads))
     }
 
     /// Creates a pair of connected connections.

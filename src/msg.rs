@@ -5,6 +5,8 @@ use std::{
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use crate::error::ExtractError;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Message {
@@ -158,8 +160,7 @@ impl Message {
     pub fn write(self, w: &mut impl Write) -> io::Result<()> {
         self._write(w)
     }
-    // FIXME: This should not be public
-    pub fn _write(self, w: &mut dyn Write) -> io::Result<()> {
+    fn _write(self, w: &mut dyn Write) -> io::Result<()> {
         #[derive(Serialize)]
         struct JsonRpc {
             jsonrpc: &'static str,
@@ -185,14 +186,16 @@ impl Request {
     pub fn new<P: Serialize>(id: RequestId, method: String, params: P) -> Request {
         Request { id, method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
+    pub fn extract<P: DeserializeOwned>(
+        self,
+        method: &str,
+    ) -> Result<(RequestId, P), ExtractError<Request>> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid request\nMethod: {}\n error: {}", method, err)
-            });
+            let params = serde_json::from_value(self.params)
+                .map_err(|error| ExtractError::JsonError { method: self.method, error })?;
             Ok((self.id, params))
         } else {
-            Err(self)
+            Err(ExtractError::MethodMismatch(self))
         }
     }
 
@@ -208,14 +211,15 @@ impl Notification {
     pub fn new(method: String, params: impl Serialize) -> Notification {
         Notification { method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
+    pub fn extract<P: DeserializeOwned>(
+        self,
+        method: &str,
+    ) -> Result<P, ExtractError<Notification>> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
-            });
-            Ok(params)
+            serde_json::from_value(self.params)
+                .map_err(|error| ExtractError::JsonError { method: self.method, error })
         } else {
-            Err(self)
+            Err(ExtractError::MethodMismatch(self))
         }
     }
     pub(crate) fn is_exit(&self) -> bool {
