@@ -109,18 +109,17 @@ impl Connection {
     pub fn initialize_start(&self) -> Result<(RequestId, serde_json::Value), ProtocolError> {
         loop {
             match self.receiver.recv() {
+                Ok(Message::Request(req)) if req.is_initialize() => {
+                    return Ok((req.id, req.params))
+                }
+                // Respond to non-initialize requests with ServerNotInitialized
                 Ok(Message::Request(req)) => {
-                    if req.is_initialize() {
-                        return Ok((req.id, req.params));
-                    } else {
-                        // Respond to non-initialize requests with ServerNotInitialized
-                        let resp = Response::new_err(
-                            req.id.clone(),
-                            ErrorCode::ServerNotInitialized as i32,
-                            format!("expected initialize request, got {:?}", req),
-                        );
-                        self.sender.send(resp.into()).unwrap();
-                    }
+                    let resp = Response::new_err(
+                        req.id.clone(),
+                        ErrorCode::ServerNotInitialized as i32,
+                        format!("expected initialize request, got {:?}", req),
+                    );
+                    self.sender.send(resp.into()).unwrap();
                 }
                 Ok(msg) => {
                     return Err(ProtocolError(format!(

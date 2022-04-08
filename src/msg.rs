@@ -158,6 +158,7 @@ impl Message {
     pub fn write(self, w: &mut impl Write) -> io::Result<()> {
         self._write(w)
     }
+    // FIXME: This should not be public
     pub fn _write(self, w: &mut dyn Write) -> io::Result<()> {
         #[derive(Serialize)]
         struct JsonRpc {
@@ -279,7 +280,7 @@ mod tests {
     #[test]
     fn shutdown_with_explicit_null() {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\", \"params\": null }";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(
             matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
@@ -289,7 +290,7 @@ mod tests {
     #[test]
     fn shutdown_with_no_params() {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\"}";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(
             matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
@@ -299,7 +300,7 @@ mod tests {
     #[test]
     fn notification_with_explicit_null() {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\", \"params\": null }";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
@@ -307,7 +308,7 @@ mod tests {
     #[test]
     fn notification_with_no_params() {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\"}";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
