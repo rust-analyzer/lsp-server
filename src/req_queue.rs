@@ -56,7 +56,7 @@ impl<O> Outgoing<O> {
         self.next_id += 1;
         Request::new(id, method, params)
     }
-    pub fn complete(&mut self, id: RequestId) -> O {
-        self.pending.remove(&id).unwrap()
+    pub fn complete(&mut self, id: RequestId) -> Option<O> {
+        self.pending.remove(&id)
     }
 }

@@ -5,6 +5,8 @@ use std::{
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use crate::error::ExtractError;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Message {
@@ -158,7 +160,7 @@ impl Message {
     pub fn write(self, w: &mut impl Write) -> io::Result<()> {
         self._write(w)
     }
-    pub fn _write(self, w: &mut dyn Write) -> io::Result<()> {
+    fn _write(self, w: &mut dyn Write) -> io::Result<()> {
         #[derive(Serialize)]
         struct JsonRpc {
             jsonrpc: &'static str,
@@ -184,14 +186,16 @@ impl Request {
     pub fn new<P: Serialize>(id: RequestId, method: String, params: P) -> Request {
         Request { id, method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<(RequestId, P), Request> {
+    pub fn extract<P: DeserializeOwned>(
+        self,
+        method: &str,
+    ) -> Result<(RequestId, P), ExtractError<Request>> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid request\nMethod: {}\n error: {}", method, err)
-            });
+            let params = serde_json::from_value(self.params)
+                .map_err(|error| ExtractError::JsonError { method: self.method, error })?;
             Ok((self.id, params))
         } else {
-            Err(self)
+            Err(ExtractError::MethodMismatch(self))
         }
     }
 
@@ -207,14 +211,15 @@ impl Notification {
     pub fn new(method: String, params: impl Serialize) -> Notification {
         Notification { method, params: serde_json::to_value(params).unwrap() }
     }
-    pub fn extract<P: DeserializeOwned>(self, method: &str) -> Result<P, Notification> {
+    pub fn extract<P: DeserializeOwned>(
+        self,
+        method: &str,
+    ) -> Result<P, ExtractError<Notification>> {
         if self.method == method {
-            let params = serde_json::from_value(self.params).unwrap_or_else(|err| {
-                panic!("Invalid notification\nMethod: {}\n error: {}", method, err)
-            });
-            Ok(params)
+            serde_json::from_value(self.params)
+                .map_err(|error| ExtractError::JsonError { method: self.method, error })
         } else {
-            Err(self)
+            Err(ExtractError::MethodMismatch(self))
         }
     }
     pub(crate) fn is_exit(&self) -> bool {
@@ -279,7 +284,7 @@ mod tests {
     #[test]
     fn shutdown_with_explicit_null() {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\", \"params\": null }";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(
             matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
@@ -289,7 +294,7 @@ mod tests {
     #[test]
     fn shutdown_with_no_params() {
         let text = "{\"jsonrpc\": \"2.0\",\"id\": 3,\"method\": \"shutdown\"}";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(
             matches!(msg, Message::Request(req) if req.id == 3.into() && req.method == "shutdown")
@@ -299,7 +304,7 @@ mod tests {
     #[test]
     fn notification_with_explicit_null() {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\", \"params\": null }";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
@@ -307,7 +312,7 @@ mod tests {
     #[test]
     fn notification_with_no_params() {
         let text = "{\"jsonrpc\": \"2.0\",\"method\": \"exit\"}";
-        let msg: Message = serde_json::from_str(&text).unwrap();
+        let msg: Message = serde_json::from_str(text).unwrap();
 
         assert!(matches!(msg, Message::Notification(not) if not.method == "exit"));
     }
