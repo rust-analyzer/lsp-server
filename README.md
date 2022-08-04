@@ -14,6 +14,7 @@
         src="https://img.shields.io/librariesio/release/cargo/lsp-server.svg?logo=rust" /></a>
   </p>
   <strong>A language server scaffold exposing a crossbeam-channel API.</strong>
+  <h2>This crate has been vendored into the <a href="https://github.com/rust-lang/rust-analyzer/tree/master/lib/lsp-server">rust-analyzer repo</a></h2>
 </div>
 
 ## Description
